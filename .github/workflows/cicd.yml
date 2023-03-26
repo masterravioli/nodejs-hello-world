@@ -5,6 +5,8 @@ on:
 
 env:
   IMAGE_NAME: nodejs-hello-world
+  RESOURCE_GROUP_NAME: devops-rg
+  NSG_NAME: sonarqube-nsg
 
 jobs:
   build:
@@ -18,9 +20,10 @@ jobs:
         with:
           creds: '{"clientId":"${{ secrets.AZ_CLIENT_ID }}","clientSecret":"${{ secrets.AZ_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZ_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZ_TENANT_ID }}"}'
 
-      - run: |
+      - name: Allow Connectivity from GitHub Runner
+        run: |
           RUNNER_IP=$(curl http://api.ipify.org)
-          az network nsg rule create --name AllowSonarQube --nsg-name sonarqube-nsg --priority 100 --resource-group devops-rg --access Allow --destination-port-ranges 9000 --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv
+          az network nsg rule create --name AllowGitHubRunner --nsg-name ${{ env.NSG_NAME }} --priority 100 --resource-group ${{ env.RESOURCE_GROUP_NAME }} --access Allow --destination-port-ranges 8080 --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv
       
       - name: Login to Docker Hub
         if: ${{ false }}
