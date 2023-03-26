@@ -20,7 +20,7 @@ jobs:
 
       - run: |
           RUNNER_IP=$(curl http://api.ipify.org)
-          az network nsg rule create --name AllowSonarQube --nsg-name sonarqube-nsg --priority 100 --resource-group devops-rg --access Allow --destination-port-ranges 9000 --direction Inbound --protocol Tcp --source-address-prefixes $RUNNER_IP/32 -o tsv)
+          az network nsg rule create --name AllowSonarQube --nsg-name sonarqube-nsg --priority 100 --resource-group devops-rg --access Allow --destination-port-ranges 9000 --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv)
       
       - name: Login to Docker Hub
         if: ${{ false }}
