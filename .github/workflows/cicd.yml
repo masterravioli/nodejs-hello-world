@@ -27,6 +27,7 @@ jobs:
       - name: Tag Docker image
         run: |
           docker tag $IMAGE_NAME ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.run_id }}
+          docker tag $IMAGE_NAME ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:latest
 
       - name: Push Docker image
         run: |
