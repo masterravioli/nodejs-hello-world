@@ -24,7 +24,13 @@ jobs:
         run: |
           RUNNER_IP=$(curl http://api.ipify.org)
           az network nsg rule create --name AllowGitHubRunner --nsg-name ${NSG_NAME} --priority 100 --resource-group ${RESOURCE_GROUP_NAME} --access Allow --destination-port-ranges 8080 --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv
-      
+   
+      - name: Run SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v1.2.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
       - name: Login to Docker Hub
         if: ${{ false }}
         uses: docker/login-action@v2
