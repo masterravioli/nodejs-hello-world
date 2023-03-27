@@ -7,6 +7,7 @@ env:
   IMAGE_NAME: nodejs-hello-world
   RESOURCE_GROUP_NAME: devops-rg
   NSG_NAME: sonarqube-nsg
+  NSG_RULE_NAME: AllowGitHubRunner
 
 jobs:
   build:
@@ -19,15 +20,18 @@ jobs:
           # Disabling shallow clone is recommended for improving relevancy of reporting
           fetch-depth: 0
         
-      - uses: Azure/login@v1
+      - name: Azure Login
+        id: azlogin
+        uses: Azure/login@v1
         with:
           creds: '{"clientId":"${{ secrets.AZ_CLIENT_ID }}","clientSecret":"${{ secrets.AZ_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZ_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZ_TENANT_ID }}"}'
 
       - name: Allow Azure Connectivity from GitHub Runner
+        id: allowconnectivity
         run: |
           RUNNER_IP=$(curl http://api.ipify.org)
-          az network nsg rule create --name AllowGitHubRunner --nsg-name ${NSG_NAME} --priority 100 --resource-group ${RESOURCE_GROUP_NAME} --access Allow --destination-port-ranges 8080 --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv
-          sleep 180
+          az network nsg rule create --name ${NSG_RULE_NAME} --nsg-name ${NSG_NAME} --priority 100 --resource-group ${RESOURCE_GROUP_NAME} --access Allow --destination-port-ranges 8080 --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv
+          sleep 120
    
       - name: Run SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v1.2.0
@@ -40,6 +44,30 @@ jobs:
         timeout-minutes: 5
         env:
          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+         
+      - name: Disable Azure Connectivity from GitHub Runner
+        if: ${{ steps.allowconnectivity.conclusion == 'success' }}
+        run: |
+          # Check if NSG exists before attempting to delete the NSG rule
+          nsg_exists=$(az network nsg show --name $NSG_NAME --resource-group $RESOURCE_GROUP_NAME --query "name" --output tsv 2>/dev/null)
+          
+          if [[ -z $nsg_exists ]]; then
+            echo "NSG $NSG_NAME does not exist."
+          else
+            echo "NSG $NSG_NAME exists. Attempting to delete NSG rule $NSG_RULE_NAME..."
+            
+            # Delete NSG rule
+            az network nsg rule delete --name $NSG_RULE_NAME --nsg-name $NSG_NAME --resource-group $RESOURCE_GROUP_NAME
+            
+            echo "NSG rule $NSG_RULE_NAME has been deleted from NSG $NSG_NAME."
+          fi
+      
+      - name: Azure Logout
+        if: steps.azlogin.conclusion == 'success'
+        run: |
+          az logout
+          az cache purge
+          az account clear
 
       - name: Login to Docker Hub
         if: ${{ false }}
