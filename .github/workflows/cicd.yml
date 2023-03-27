@@ -63,7 +63,7 @@ jobs:
           fi
       
       - name: Azure Logout
-        if: steps.azlogin.conclusion == 'success'
+        if: ${{ steps.azlogin.conclusion == 'success' }}
         run: |
           az logout
           az cache purge
