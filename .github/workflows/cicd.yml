@@ -14,7 +14,7 @@ env:
   ALLOW_PORTS: 8080
 
 jobs:
-  build:
+  BuildAndPush:
     runs-on: ubuntu-latest
 
     steps:
