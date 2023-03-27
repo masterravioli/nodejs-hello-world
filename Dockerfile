@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm install
 
 # Copy the rest of the app's files to the container
-COPY . .
+COPY index.js ./
 
 # Expose port 80 for the app to listen on
 EXPOSE 80
