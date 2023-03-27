@@ -7,7 +7,7 @@ env:
   IMAGE_NAME: nodejs-hello-world
   RESOURCE_GROUP_NAME: devops-rg
   NSG_NAME: sonarqube-nsg
-  NSG_RULE_NAME: AllowGitHubRunner
+  NSG_RULE_NAME: AllowGitHubRunner-${{ github.run_id }}
 
 jobs:
   build:
