@@ -7,7 +7,8 @@ env:
   IMAGE_NAME: nodejs-hello-world
   RESOURCE_GROUP_NAME: devops-rg
   NSG_NAME: sonarqube-nsg
-  NSG_RULE_NAME: AllowGitHubRunner-${{ github.run_id }}
+  NSG_RULE_NAME: AllowGitHub-${{ github.run_id }}
+  ALLOW_PORTS: 8080
 
 jobs:
   build:
@@ -30,7 +31,7 @@ jobs:
         id: allowconnectivity
         run: |
           RUNNER_IP=$(curl http://api.ipify.org)
-          az network nsg rule create --name ${NSG_RULE_NAME} --nsg-name ${NSG_NAME} --priority 100 --resource-group ${RESOURCE_GROUP_NAME} --access Allow --destination-port-ranges 8080 --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv
+          az network nsg rule create --name ${NSG_RULE_NAME} --nsg-name ${NSG_NAME} --priority 100 --resource-group ${RESOURCE_GROUP_NAME} --access Allow --destination-port-ranges ${ALLOW_PORTS} --direction Inbound --protocol Tcp --source-address-prefixes ${RUNNER_IP}/32 -o tsv
           sleep 120
    
       - name: Run SonarQube Scan
@@ -48,13 +49,13 @@ jobs:
       - name: Disable Azure Connectivity from GitHub Runner
         if: ${{ steps.allowconnectivity.conclusion == 'success' }}
         run: |
-          # Check if NSG exists before attempting to delete the NSG rule
-          nsg_exists=$(az network nsg show --name $NSG_NAME --resource-group $RESOURCE_GROUP_NAME --query "name" --output tsv 2>/dev/null)
+          # Check if NSG rule exists before attempting to delete the NSG rule
+          nsg_rule_exists=$(az network nsg rule show --name $NSG_RULE_NAME --nsg-name $NSG_NAME --resource-group $RESOURCE_GROUP_NAME --query "name" --output tsv 2>/dev/null)
           
-          if [[ -z $nsg_exists ]]; then
-            echo "NSG $NSG_NAME does not exist."
+          if [[ -z $nsg_rule_exists ]]; then
+            echo "NSG rule $NSG_RULE_NAME does not exist in NSG $NSG_NAME."
           else
-            echo "NSG $NSG_NAME exists. Attempting to delete NSG rule $NSG_RULE_NAME..."
+            echo "NSG rule $NSG_RULE_NAME exists in NSG $NSG_NAME. Attempting to delete NSG rule..."
             
             # Delete NSG rule
             az network nsg rule delete --name $NSG_RULE_NAME --nsg-name $NSG_NAME --resource-group $RESOURCE_GROUP_NAME
